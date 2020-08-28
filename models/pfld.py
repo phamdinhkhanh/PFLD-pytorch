@@ -112,6 +112,7 @@ class PFLDInference(nn.Module):
         x = self.block3_3(x)
         x = self.block3_4(x)
         out1 = self.block3_5(x)
+        print('out1 size: ', out1.size())
 
         x = self.conv4_1(out1)
         x = self.conv5_1(x)
@@ -121,23 +122,28 @@ class PFLDInference(nn.Module):
         x = self.block5_5(x)
         x = self.block5_6(x)
         x = self.conv6_1(x)
+        print('x size: ', x.size())
+
         x1 = self.avg_pool1(x)
         x1 = x1.view(x1.size(0), -1)
 
         x = self.conv7(x)
-        x2 = self.avg_pool2(x)
+        print('x size: ', x.size())
 
+        x2 = self.avg_pool2(x)
         x2 = x2.view(x2.size(0), -1)
 
         x3 = self.relu(self.conv8(x))
-
         x3 = x3.view(x1.size(0), -1)
-
+        
+        print('x1 size: ', x1.size())
+        print('x2 size: ', x2.size())
+        print('x3 size: ', x3.size())
         multi_scale = torch.cat([x1, x2, x3], 1)
-        landmarks = self.fc(multi_scale)
+        print('multi_scale size: ', multi_scale.size())
+        landmarks = self.fc(multi_scale) # [196]
 
         return out1, landmarks
-
 
 class CustomizedGhostNet(nn.Module):
     """
@@ -230,7 +236,7 @@ class CustomizedGhostNet(nn.Module):
         x = self.conv_stem(x)
         x = self.bn1(x)
         x = self.act1(x)
-        features_for_auxiliarynet = self.begining_blocks(x)
+        features_for_auxiliarynet = self.begining_blocks(x) # [64, 28, 28]
         x = self.remaining_blocks(features_for_auxiliarynet)
 
         x1 = self.avg_pool1(x)
@@ -254,7 +260,7 @@ class CustomizedGhostNet(nn.Module):
 class AuxiliaryNet(nn.Module):
     def __init__(self):
         super(AuxiliaryNet, self).__init__()
-        self.conv1 = conv_bn(80, 128, 3, 2)  # Original of PFLd is 64 but I used 80 here to match with ghostnet model
+        self.conv1 = conv_bn(64, 128, 3, 2)  # Original of PFLd is 64 but I used 80 here to match with ghostnet model
         self.conv2 = conv_bn(128, 128, 3, 1)
         self.conv3 = conv_bn(128, 32, 3, 2)
         self.conv4 = conv_bn(32, 128, 7, 1)
@@ -263,6 +269,7 @@ class AuxiliaryNet(nn.Module):
         self.fc2 = nn.Linear(32, 3)
 
     def forward(self, x):
+        # x input shape [64, 28, 28]
         x = self.conv1(x)
         x = self.conv2(x)
         x = self.conv3(x)
@@ -271,16 +278,20 @@ class AuxiliaryNet(nn.Module):
         x = x.view(x.size(0), -1)
         x = self.fc1(x)
         x = self.fc2(x)
+        return x # [3]
 
-        return x
 
+if __name__ == '__main__':
+    input = torch.randn(1, 3, 112, 112)
+    plfd_backbone = PFLDInference()
+    auxiliarynet = AuxiliaryNet()
+    features, landmarks = plfd_backbone(input)
+    angle = auxiliarynet(features)
 
-# if __name__ == '__main__':
-#     input = torch.randn(1, 3, 112, 112)
-#     plfd_backbone = PFLDInference()
-#     auxiliarynet = AuxiliaryNet()
-#     features, landmarks = plfd_backbone(input)
-#     angle = auxiliarynet(features)
-
-#     print("angle.shape:{0:}, landmarks.shape: {1:}".format(
-#         angle.shape, landmarks.shape))
+    print("angle.shape:{0:}, landmarks.shape: {1:}".format(
+        angle.shape, landmarks.shape))
+    
+    from torchsummary import summary
+    summary(plfd_backbone, (3, 112, 112), device="cpu")
+    from torchviz import make_dot
+    make_dot(plfd_backbone(input), params=dict(plfd_backbone.named_parameters())).render("attached", format="png")

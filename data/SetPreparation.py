@@ -35,7 +35,7 @@ class ImageDate():
         #203: 化妆(make-up)      0->无化妆(no make-up)             1->化妆(make-up)
         #204: 遮挡(occlusion)    0->无遮挡(no occlusion)           1->遮挡(occlusion)
         #205: 模糊(blur)         0->清晰(clear)                    1->模糊(blur)
-        #206: 图片名称
+        #206: 图片名称 (image name)
         assert(len(line) == 207)
         self.list = line
         self.landmark = np.asarray(list(map(float, line[:196])), dtype=np.float32).reshape(-1, 2)
@@ -62,13 +62,19 @@ class ImageDate():
                 assert len(lines) == 1
                 mirror_idx = lines[0].strip().split(',')
                 mirror_idx = list(map(int, mirror_idx))
+        # Lowest x, y
         xy = np.min(self.landmark, axis=0).astype(np.int32) 
+        # Highest x, yload_data
         zz = np.max(self.landmark, axis=0).astype(np.int32)
+        # width, height of facelandmark
         wh = zz - xy + 1
 
+        # Center of landmark
         center = (xy + wh/2).astype(np.int32)
         img = cv2.imread(self.path)
         boxsize = int(np.max(wh)*1.2)
+
+        # Take bbox
         xy = center - boxsize//2
         x1, y1 = xy
         x2, y2 = xy + boxsize
@@ -82,7 +88,8 @@ class ImageDate():
         edy = max(0, y2 - height)
         x2 = min(width, x2)
         y2 = min(height, y2)
-
+        
+        # Show landmark
         imgT = img[y1:y2, x1:x2]
         if (dx > 0 or dy > 0 or edx > 0 or edy > 0):
             imgT = cv2.copyMakeBorder(imgT, dy, edy, dx, edx, cv2.BORDER_CONSTANT, 0)
@@ -93,7 +100,9 @@ class ImageDate():
             cv2.imshow('0', imgTT)
             if cv2.waitKey(0) == 27:
                 exit()
+        # Resize face crop
         imgT = cv2.resize(imgT, (self.image_size, self.image_size))
+        # Normalize landmark according to boxsize (value between 0 and 1)
         landmark = (self.landmark - xy)/boxsize
         assert (landmark >= 0).all(), str(landmark) + str([dx, dy])
         assert (landmark <= 1).all(), str(landmark) + str([dx, dy])
@@ -102,18 +111,23 @@ class ImageDate():
 
         if is_train:
             while len(self.imgs) < repeat:
+                # Randomly rotate 30 degree
                 angle = np.random.randint(-30, 30)
                 cx, cy = center
                 cx = cx + int(np.random.randint(-boxsize*0.1, boxsize*0.1))
                 cy = cy + int(np.random.randint(-boxsize * 0.1, boxsize * 0.1))
                 M, landmark = rotate(angle, (cx,cy), self.landmark)
 
+                # Rotate Image and scale 1.1 times
                 imgT = cv2.warpAffine(img, M, (int(img.shape[1]*1.1), int(img.shape[0]*1.1)))
 
-                
+                # Width and heigth of facelandmark
                 wh = np.ptp(landmark, axis=0).astype(np.int32) + 1
+                # Randomly pick up size
                 size = np.random.randint(int(np.min(wh)), np.ceil(np.max(wh) * 1.25))
+                # Take x, y leftlower point
                 xy = np.asarray((cx - size // 2, cy - size//2), dtype=np.int32)
+                # Normalize landmark
                 landmark = (landmark - xy) / size
                 if (landmark < 0).any() or (landmark > 1).any():
                     continue
@@ -134,7 +148,8 @@ class ImageDate():
                 imgT = imgT[y1:y2, x1:x2]
                 if (dx > 0 or dy > 0 or edx >0 or edy > 0):
                     imgT = cv2.copyMakeBorder(imgT, dy, edy, dx, edx, cv2.BORDER_CONSTANT, 0)
-
+                
+                # Rescale image into standard image size
                 imgT = cv2.resize(imgT, (self.image_size, self.image_size))
 
                 if mirror is not None and np.random.choice((True, False)):
@@ -145,6 +160,7 @@ class ImageDate():
                 self.landmarks.append(landmark)
 
     def save_data(self, path, prefix):
+        # Save attribute
         attributes = [self.pose, self.expression, self.illumination, self.make_up, self.occlusion, self.blur]
         attributes = np.asarray(attributes, dtype=np.int32)
         attributes_str = ' '.join(list(map(str, attributes)))
@@ -154,8 +170,10 @@ class ImageDate():
             assert lanmark.shape == (98, 2)
             save_path = os.path.join(path, prefix+'_'+str(i)+'.png')
             assert not os.path.exists(save_path), save_path
+            # Save image
             cv2.imwrite(save_path, img)
 
+            # save TRACKED_POINTS
             euler_angles_landmark = []
             for index in TRACKED_POINTS:
                 euler_angles_landmark.append(lanmark[index])

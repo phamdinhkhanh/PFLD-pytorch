@@ -74,19 +74,19 @@ def validate(wlfw_val_dataloader, plfd_backbone):
         for img, landmark_gt, _, _ in wlfw_val_dataloader:
             i +=1
             if i==200:
-            img = img.to(device)
-            landmark_gt = landmark_gt.to(device)
-            plfd_backbone = plfd_backbone.to(device)
+                img = img.to(device)
+                landmark_gt = landmark_gt.to(device)
+                plfd_backbone = plfd_backbone.to(device)
 
-            start_time = time.time()
-            t1 = time.time()
-            _, landmarks = plfd_backbone(img)
-            print("Time: ", time.time()-t1)
-            cost_time.append(time.time() - start_time)
+                start_time = time.time()
+                t1 = time.time()
+                _, landmarks = plfd_backbone(img)
+                print("Time: ", time.time()-t1)
+                cost_time.append(time.time() - start_time)
 
-            landmarks = landmarks.cpu().numpy()
-            landmarks = landmarks.reshape(landmarks.shape[0], -1, 2) # landmark 
-            landmark_gt = landmark_gt.reshape(landmark_gt.shape[0], -1, 2).cpu().numpy() # landmark_gt
+                landmarks = landmarks.cpu().numpy()
+                landmarks = landmarks.reshape(landmarks.shape[0], -1, 2) # landmark 
+                landmark_gt = landmark_gt.reshape(landmark_gt.shape[0], -1, 2).cpu().numpy() # landmark_gt
 
             if args.show_image:
                 show_img = np.array(np.transpose(img[0].cpu().numpy(), (1, 2, 0)))

@@ -76,9 +76,17 @@ target/
 # Jupyter Notebook
 .ipynb_checkpoints
 
+# Checkpoint model train
+checkpoint
+
+# Onnx model save
+pfld.onnx
+auxiliary.onnx
+
 # IPython
 profile_default/
 ipython_config.py
+
 
 # pyenv
 .python-version
@@ -128,4 +136,4 @@ dmypy.json
 WFLW
 train_data
 test_data
-
+WFLW2

@@ -23,12 +23,12 @@ from pfld.utils import AverageMeter
 import wandb
 import logging
 from models.pfld import PFLDInference, AuxiliaryNet, CustomizedGhostNet
-
+from models.mobilenetv3 import MobileNetV3BackBone
 
 wandb.init(project="Pratical Facial Landmark Detection")
 # wandb.config.backbone = "MobileNet-v2"
 wandb.config.width_model = 1
-wandb.config.pfld_backbone = "GhostNet" # Or MobileNet2
+wandb.config.pfld_backbone = "MobileNet3" # GhostNet; MobileNet2; MobileNet3
 wandb.config.ghostnet_width = 1
 wandb.config.ghostnet_with_pretrained_weight_image_net = True
 wandb.config.using_wingloss = True
@@ -133,8 +133,10 @@ def train(train_loader, plfd_backbone, auxiliarynet, criterion, optimizer,
 
         losses.update(loss.item())
         wandb.log({"metric/loss":loss.item()})
-        wandb.log({"metric/weighted_loss": weighted_loss.detach().numpy()})
-        logger.info(f"Epoch:{epoch}. Batch {i} / {num_batch} batches. Loss: {loss.item()}. Weighted_loss:{ weighted_loss.detach().numpy()}")
+        # wandb.log({"metric/weighted_loss": weighted_loss.detach().numpy()})
+        wandb.log({"metric/weighted_loss": weighted_loss.cpu().data.numpy()})
+        # logger.info(f"Epoch:{epoch}. Batch {i} / {num_batch} batches. Loss: {loss.item()}. Weighted_loss:{ weighted_loss.detach().numpy()}")
+        logger.info(f"Epoch:{epoch}. Batch {i} / {num_batch} batches. Loss: {loss.item()}. Weighted_loss:{ weighted_loss.cpu().data.numpy()}")
 
     return weighted_loss, loss
 
@@ -182,12 +184,15 @@ def main(args):
             plfd_backbone = load_pretrained_weight_imagenet_for_ghostnet_backbone(
                 plfd_backbone, "./checkpoint_imagenet/state_dict_93.98.pth")
             
-
+    if wandb.config.pfld_backbone == "MobileNet3":
+        plfd_backbone = MobileNetV3BackBone(mode='large').to(device)
+        logger.info(f"Using MobileNet3 as backbone of PFLD backbone")
 
     else:
         plfd_backbone = PFLDInference().to(device) # MobileNet2 defaut
         logger.info("Using MobileNet2 as backbone of PFLD backbone")
 
+    # Load auxiliarynet to predicting roll, pitch and raw
     auxiliarynet = AuxiliaryNet().to(device)
 
     # Watch model by wandb

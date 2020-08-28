@@ -10,19 +10,32 @@ class PFLDLoss(nn.Module):
         super(PFLDLoss, self).__init__()
 
     def forward(self, attribute_gt, landmark_gt, euler_angle_gt, angle, landmarks, train_batchsize, using_wingloss=False):
-        weight_angle = torch.sum(1 - torch.cos(angle - euler_angle_gt), axis=1)
+        '''
+        attribute_gt: ground truth for head pose frontal, head up, head down, turn left, turn right.
+        landmark_gt: ground truth land mark, 196 points.
+        euler_angle_gt: euler angle 
+        angle: angle
+        landmarks: predicted landmark points.
+        train_batchsize: train batch size.
+        using_wingloss: wing loss function. True/False
+        note: euler_angle_gt and angle are going to be used to calculate weight angle.
+        '''
+        weight_angle = torch.sum(1 - torch.cos(angle - euler_angle_gt), axis=1) # [batch_size]
+        # Extract head pose
         attributes_w_n = attribute_gt[:, 1:6].float()
+        # Distribution of head pose
         mat_ratio = torch.mean(attributes_w_n, axis=0)
+        # Weight based on distribution of head pose on batch
         mat_ratio = torch.Tensor([
             1.0 / (x) if x > 0 else train_batchsize for x in mat_ratio
         ]).to(device)
-        weight_attribute = torch.sum(attributes_w_n.mul(mat_ratio), axis=1)
-
+        weight_attribute = torch.sum(attributes_w_n.mul(mat_ratio), axis=1) # [batch_size]
+        # l2_distance between landmark ground truth and landmarks
         if using_wingloss:
             l2_distant = customed_wing_loss(landmark_gt, landmarks)
         else:
-            l2_distant = torch.sum((landmark_gt - landmarks) * (landmark_gt - landmarks), axis=1)
-
+            l2_distant = torch.sum((landmark_gt - landmarks) * (landmark_gt - landmarks), axis=1) #[batch_Size]
+        # Turn loss weight by angle and normal loss
         return torch.mean(weight_angle * weight_attribute * l2_distant), torch.mean(l2_distant)
 
 
