@@ -53,7 +53,7 @@ def calculate_pitch_yaw_roll(landmarks_2D, cam_w=256, cam_h=256,
                                       camera_matrix, camera_distortion)
     #Get as input the rotational vector, Return a rotational matrix
 
-    # const double PI = 3.141592653;
+    # const double PI = 3.141592653;   
     # double thetaz = atan2(r21, r11) / PI * 180;
     # double thetay = atan2(-1 * r31, sqrt(r32*r32 + r33*r33)) / PI * 180;
     # double thetax = atan2(r32, r33) / PI * 180;

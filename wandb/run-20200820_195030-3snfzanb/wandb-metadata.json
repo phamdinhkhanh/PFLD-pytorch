@@ -1,0 +1,24 @@
+{
+    "root": "/mnt/Face/PFLD-pytorch",
+    "program": "train.py",
+    "git": {
+        "remote": "https://github.com/phamdinhkhanh/PFLD-pytorch.git",
+        "commit": "83b1078349be54d54a513c49aec201dad9ffdf49"
+    },
+    "email": "phamdinhkhanh.tkt53.neu@gmail.com",
+    "startedAt": "2020-08-20T12:50:31.290419",
+    "host": "vinai-G7-7590",
+    "username": "vinai",
+    "executable": "/usr/bin/python3",
+    "os": "Linux-5.4.0-42-generic-x86_64-with-Ubuntu-18.04-bionic",
+    "python": "3.6.9",
+    "gpu": "GeForce RTX 2060",
+    "gpu_count": 1,
+    "cpu_count": 12,
+    "args": [],
+    "state": "running",
+    "jobType": null,
+    "mode": "run",
+    "project": "Pratical Facial Landmark Detection",
+    "heartbeatAt": "2020-08-20T12:50:32.820750"
+}

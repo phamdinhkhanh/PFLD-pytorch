@@ -24,13 +24,14 @@ import wandb
 import logging
 from models.pfld import PFLDInference, AuxiliaryNet, CustomizedGhostNet
 from models.mobilenetv3 import MobileNetV3BackBone
+from utils import compute_nme, compute_nme_flat, get_lr
 
 wandb.init(project="Pratical Facial Landmark Detection")
 # wandb.config.backbone = "MobileNet-v2"
-wandb.config.width_model = 1
+# wandb.config.width_model = 1
 wandb.config.pfld_backbone = "MobileNet3" # GhostNet; MobileNet2; MobileNet3
-wandb.config.ghostnet_width = 1
-wandb.config.ghostnet_with_pretrained_weight_image_net = True
+# wandb.config.ghostnet_width = 1
+# wandb.config.ghostnet_with_pretrained_weight_image_net = True
 wandb.config.using_wingloss = True
 
 
@@ -130,13 +131,16 @@ def train(train_loader, plfd_backbone, auxiliarynet, criterion, optimizer,
         optimizer.zero_grad()
         weighted_loss.backward()
         optimizer.step()
-
+        lr = get_lr(optimizer)
+        wandb.log({"metric/learning_rate": lr})
+        nme = compute_nme_flat(landmarks, landmark_gt)
+        wandb.log({"metric/nme_loss": nme})
         losses.update(loss.item())
         wandb.log({"metric/loss":loss.item()})
         # wandb.log({"metric/weighted_loss": weighted_loss.detach().numpy()})
         wandb.log({"metric/weighted_loss": weighted_loss.cpu().data.numpy()})
         # logger.info(f"Epoch:{epoch}. Batch {i} / {num_batch} batches. Loss: {loss.item()}. Weighted_loss:{ weighted_loss.detach().numpy()}")
-        logger.info(f"Epoch:{epoch}. Batch {i} / {num_batch} batches. Loss: {loss.item()}. Weighted_loss:{ weighted_loss.cpu().data.numpy()}")
+        logger.info(f"Epoch:{epoch}. Batch {i} / {num_batch} batches. Loss: {loss.item()}. Weighted_loss:{ weighted_loss.cpu().data.numpy()}. nme_loss: {nme}. Learning Rate: {lr}")
 
     return weighted_loss, loss
 
@@ -187,6 +191,10 @@ def main(args):
     if wandb.config.pfld_backbone == "MobileNet3":
         plfd_backbone = MobileNetV3BackBone(mode='large').to(device)
         logger.info(f"Using MobileNet3 as backbone of PFLD backbone")
+        # If using pretrained weight from ghostnet model trained on image net
+        checkpoint = torch.load(args.model_path, map_location=device)
+        logger.info(f"Using pretrained weights of mobilenetv3 model at checkpoint 17 epoch")
+        plfd_backbone.load_state_dict(checkpoint['plfd_backbone'])
 
     else:
         plfd_backbone = PFLDInference().to(device) # MobileNet2 defaut
@@ -273,6 +281,11 @@ def parse_args():
 
     # -- snapshot、tensorboard log and checkpoint
     parser.add_argument(
+        '--model_path',
+        default='./checkpoints_landmark/mobilenetv3/snapshot/checkpoint_epoch_17.pth.tar',
+        type=str
+        )
+    parser.add_argument(
         '--snapshot',
         default='./checkpoint/snapshot/',
         type=str,
@@ -302,5 +315,7 @@ def parse_args():
 
 
 if __name__ == "__main__":
+    # python3 train.py --snapshot ../../../vinai/khanhpd4/PFLD-pytorch/checkpoint/snapshot --log_file ../../../vinai/khanhpd4/PFLD-pytorch/checkpoint/train.logs --tensorboard ../../../vinai/khanhpd4/PFLD-pytorch/checkpoint/tensorboard
+    # python3 train.py --model_path ... --start_epoch 18
     args = parse_args()
     main(args)

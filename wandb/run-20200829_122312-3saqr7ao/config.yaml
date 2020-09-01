@@ -1,0 +1,25 @@
+wandb_version: 1
+
+_wandb:
+  desc: null
+  value:
+    cli_version: 0.9.5
+    framework: torch
+    is_jupyter_run: false
+    is_kaggle_kernel: false
+    python_version: 3.6.9
+ghostnet_width:
+  desc: null
+  value: 1
+ghostnet_with_pretrained_weight_image_net:
+  desc: null
+  value: true
+pfld_backbone:
+  desc: null
+  value: MobileNet3
+using_wingloss:
+  desc: null
+  value: true
+width_model:
+  desc: null
+  value: 1

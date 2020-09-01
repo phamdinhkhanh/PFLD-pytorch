@@ -16,9 +16,10 @@ from torchvision import transforms
 from torch.utils.data import DataLoader
 import torch.backends.cudnn as cudnn
 from dataset.datasets import WLFWDatasets
+import os
 
 from models.pfld import PFLDInference, AuxiliaryNet, CustomizedGhostNet
-
+from models.mobilenetv3 import MobileNetV3BackBone
 
 cudnn.benchmark = True
 cudnn.determinstic = True
@@ -70,23 +71,24 @@ def validate(wlfw_val_dataloader, plfd_backbone):
     nme_list = []
     cost_time = []
     i = 0
+    if not os.path.exists(os.path.join("./data/test_data", args.savefolder)):
+        os.mkdir(os.path.join("./data/test_data", args.savefolder))
     with torch.no_grad():
         for img, landmark_gt, _, _ in wlfw_val_dataloader:
             i +=1
-            if i==200:
-                img = img.to(device)
-                landmark_gt = landmark_gt.to(device)
-                plfd_backbone = plfd_backbone.to(device)
+            img = img.to(device)
+            landmark_gt = landmark_gt.to(device)
+            plfd_backbone = plfd_backbone.to(device)
 
-                start_time = time.time()
-                t1 = time.time()
-                _, landmarks = plfd_backbone(img)
-                print("Time: ", time.time()-t1)
-                cost_time.append(time.time() - start_time)
+            start_time = time.time()
+            t1 = time.time()
+            _, landmarks = plfd_backbone(img)
+            print("Time: ", time.time()-t1)
+            cost_time.append(time.time() - start_time)
 
-                landmarks = landmarks.cpu().numpy()
-                landmarks = landmarks.reshape(landmarks.shape[0], -1, 2) # landmark 
-                landmark_gt = landmark_gt.reshape(landmark_gt.shape[0], -1, 2).cpu().numpy() # landmark_gt
+            landmarks = landmarks.cpu().numpy()
+            landmarks = landmarks.reshape(landmarks.shape[0], -1, 2) # landmark 
+            landmark_gt = landmark_gt.reshape(landmark_gt.shape[0], -1, 2).cpu().numpy() # landmark_gt
 
             if args.show_image:
                 show_img = np.array(np.transpose(img[0].cpu().numpy(), (1, 2, 0)))
@@ -100,27 +102,29 @@ def validate(wlfw_val_dataloader, plfd_backbone):
 
                 for (x, y) in pre_landmark.astype(np.int32):
                     cv2.circle(img_clone, (x, y), 1, (255,0,0),-1)
-                cv2.imshow("xx.jpg", img_clone)
-                cv2.waitKey(0)
+                # cv2.imshow("xxx.jpg", img_clone) 
+                cv2.imwrite(os.path.join("./data/test_data/"+args.savefolder, str(i)+".jpg"), img_clone)
+                # cv2.waitKey(0)
 
             nme_temp = compute_nme(landmarks, landmark_gt)
             for item in nme_temp:
                 nme_list.append(item)
 
-        # nme
-        print('nme: {:.4f}'.format(np.mean(nme_list)))
-        # auc and failure rate
-        failureThreshold = 0.1
-        auc, failure_rate = compute_auc(nme_list, failureThreshold)
-        print('auc @ {:.1f} failureThreshold: {:.4f}'.format(failureThreshold, auc))
-        print('failure_rate: {:}'.format(failure_rate))
-        # inference time
-        print("inference_cost_time: {0:4f}".format(np.mean(cost_time)))
+            # nme
+            print('nme: {:.4f}'.format(np.mean(nme_list)))
+            # auc and failure rate
+            # failureThreshold = 0.1
+            # auc, failure_rate = compute_auc(nme_list, failureThreshold)
+            # print('auc @ {:.1f} failureThreshold: {:.4f}'.format(failureThreshold, auc))
+            # print('failure_rate: {:}'.format(failure_rate))
+            # inference time
+            print("inference_cost_time: {0:4f}".format(np.mean(cost_time)))
 
 def main(args):
     checkpoint = torch.load(args.model_path, map_location=device)
     # plfd_backbone = PFLDInference().to(device)
-    plfd_backbone = CustomizedGhostNet(width=1, dropout=0.2).to(device)
+    # plfd_backbone = CustomizedGhostNet(width=1, dropout=0.2).to(device)
+    plfd_backbone = MobileNetV3BackBone().to(device)
     plfd_backbone.load_state_dict(checkpoint['plfd_backbone'])
 
     transform = transforms.Compose([transforms.ToTensor()])
@@ -131,9 +135,11 @@ def main(args):
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Testing')
-    parser.add_argument('--model_path', default="./checkpoint/snapshot/checkpoint.pth.tar", type=str)
+    # parser.add_argument('--model_path', default="./checkpoint/snapshot/checkpoint.pth.tar", type=str)
+    parser.add_argument('--model_path', default="./checkpoints_landmark/mobilenetv3/snapshot/checkpoint_epoch_17.pth.tar", type=str)
     parser.add_argument('--test_dataset', default='./data/test_data/list.txt', type=str)
     parser.add_argument('--show_image', default=False, type=bool)
+    parser.add_argument('--savefolder', default='result_mobilenetv3', type=str)
     args = parser.parse_args()
     return args
 
