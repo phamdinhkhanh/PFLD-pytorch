@@ -78,10 +78,12 @@ target/
 
 # Checkpoint model train
 checkpoint
+checkpoints_landmark
 
 # Onnx model save
 pfld.onnx
 auxiliary.onnx
+model.dat
 
 # IPython
 profile_default/
@@ -137,3 +139,11 @@ WFLW
 train_data
 test_data
 WFLW2
+
+# MERL-RAV_dataset
+MERL-RAV_dataset/aflw/
+MERL-RAV_dataset/aflw_annotations
+MERL-RAV_dataset/test_data
+MERL-RAV_dataset/train_data
+wandb
+video

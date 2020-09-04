@@ -22,13 +22,13 @@ class PFLDLoss(nn.Module):
         '''
         weight_angle = torch.sum(1 - torch.cos(angle - euler_angle_gt), axis=1) # [batch_size]
         # Extract head pose
-        attributes_w_n = attribute_gt[:, 1:6].float()
+        attributes_w_n = attribute_gt[:, 1:6].float() #[batch_size, 6]
         # Distribution of head pose
-        mat_ratio = torch.mean(attributes_w_n, axis=0)
+        mat_ratio = torch.mean(attributes_w_n, axis=0) # [6]
         # Weight based on distribution of head pose on batch
         mat_ratio = torch.Tensor([
             1.0 / (x) if x > 0 else train_batchsize for x in mat_ratio
-        ]).to(device)
+        ]).to(device) # [6]
         weight_attribute = torch.sum(attributes_w_n.mul(mat_ratio), axis=1) # [batch_size]
         # l2_distance between landmark ground truth and landmarks
         if using_wingloss:

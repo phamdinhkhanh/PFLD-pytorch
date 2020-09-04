@@ -301,12 +301,12 @@ def parse_args():
     # --dataset
     parser.add_argument(
         '--dataroot',
-        default='./data/train_data/list.txt',
+        default='./MERL-RAV_dataset/train_data/list.txt',
         type=str,
         metavar='PATH')
     parser.add_argument(
         '--val_dataroot',
-        default='./data/test_data/list.txt',
+        default='./MERL-RAW_dataset/test_data/list.txt',
         type=str,
         metavar='PATH')
     parser.add_argument('--train_batchsize', default=256, type=int)

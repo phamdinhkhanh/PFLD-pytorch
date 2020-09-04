@@ -6,7 +6,7 @@ import torch
 import torchvision
 from torchvision import transforms
 import cv2
-
+from models.mobilenetv3 import MobileNetV3BackBone
 from models.pfld import PFLDInference, AuxiliaryNet
 from mtcnn.detector import detect_faces, show_bboxes
 
@@ -14,7 +14,8 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 def main(args):
     checkpoint = torch.load(args.model_path, map_location=device)
-    plfd_backbone = PFLDInference().to(device)
+    # plfd_backbone = PFLDInference().to(device)
+    plfd_backbone = MobileNetV3BackBone(mode='large')
     plfd_backbone.load_state_dict(checkpoint['plfd_backbone'])
     plfd_backbone.eval()
     plfd_backbone = plfd_backbone.to(device)
@@ -65,7 +66,7 @@ def main(args):
             pre_landmark = landmarks[0]
             pre_landmark = pre_landmark.cpu().detach().numpy().reshape(-1, 2) * [size, size]
             for (x, y) in pre_landmark.astype(np.int32):
-                cv2.circle(img, (x1 + x, y1 + y), 1, (0, 0, 255))
+                cv2.circle(img, (x1 + x, y1 + y), 2, (255, 255, 255))
 
         cv2.imshow('0', img)
         if cv2.waitKey(10) == 27:
@@ -77,7 +78,8 @@ def parse_args():
     parser = argparse.ArgumentParser(description='Testing')
     parser.add_argument(
         '--model_path',
-        default="./checkpoint/snapshot/checkpoint.pth.tar",
+        # default="./checkpoint/snapshot/checkpoint.pth.tar",
+        default="./checkpoints_landmark/mobilenetv3/snapshot/checkpoint_epoch_348.pth.tar",
         type=str)
     args = parser.parse_args()
     return args

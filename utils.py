@@ -1,4 +1,5 @@
 import numpy as np
+import cv2
 
 def compute_nme(preds, target):
     """ preds/target:: numpy array, shape is (N, L, 2)
@@ -60,3 +61,20 @@ def compute_nme_flat(preds, target):
 def get_lr(optimizer):
     for param_group in optimizer.param_groups:
         return param_group['lr']
+
+
+def rescale_frame(frame, percent=75):
+    width = int(frame.shape[1] * percent/ 100)
+    height = int(frame.shape[0] * percent/ 100)
+    dim = (width, height)
+    return cv2.resize(frame, dim, interpolation=cv2.INTER_AREA)
+
+def resize_image(image, dim):
+    return cv2.resize(image, dim, interpolation=cv2.INTER_AREA)
+
+
+def rotate_frame(frame, rotation=90):
+    (rows, cols) = frame.shape[:2]
+    M = cv2.getRotationMatrix2D(center = (cols/2,rows/2), angle=-90, scale=1)
+    tran = cv2.warpAffine(frame, M, (cols,rows))
+    return tran
